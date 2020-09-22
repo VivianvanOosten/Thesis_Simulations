@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+plt.style.use('seaborn')
 
 def dd_geometric(k, constant, phi = None):
     """
@@ -114,15 +115,18 @@ def Fig_degree_distribution_geometric(graph, constant, phi = None):
 
     #Can pick one of the options below to plot the actual frequencies
     #plt.plot(p_k) #plots frequences as a line
-    plt.scatter(x = index, y = p_k) #plots as points
-    plt.plot(expected)
+    plt.scatter(x = index, y = p_k, label = "Simulation") #plots as points
+    plt.plot(expected, label = "Theory")
+    plt.xlabel("Degree (k)")
+    plt.ylabel("Degree probability ($p_k$)")
+    plt.legend()
 
     return histogram
 
 
 #defining the number of nodes in the network (n)
 #and the relevant constants for each type of distribution
-n = 10000
+n = 100000
 cutoff = 10
 theta = 1
 a = 0.5
