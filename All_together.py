@@ -54,8 +54,10 @@ def number_generator_powerlaw(cutoff, theta):
 
 def number_generator_geometric(constant):
     """
-    Generates a k in the degree distribution: p_k = (1-a)a^k. Found on Newman book page 580.
-    The method for generating this number was taken from the Newman article, page 9. 
+    Generates a k in the degree distribution: p_k = (1-a)a^k. 
+    Found on Newman book page 580.
+    The method for generating this number was taken 
+    from the Newman article, page 9. 
     Takes as argument the constant a. 
     """
     random = np.random.rand()
@@ -64,9 +66,11 @@ def number_generator_geometric(constant):
 
 def number_generator_exponential(kappa):
     """
-    Generates a k in the degree distribution p_k = (1 - e**(-1/kappa)) e**(-k/kappa).
+    Generates a k in the degree distribution:
+    p_k = (1 - e**(-1/kappa)) e**(-k/kappa).
     Found in Nemwman particle page 4.
-    Takes as argument the constant kappa (can take any value, big or small)
+    Takes as argument the constant kappa 
+    (which can take any value, big or small)
     """
     accept = False
     while accept == False:
@@ -90,10 +94,35 @@ def Percolation(graph, phi):
             Percolated_graph.remove_node(node)
     return Percolated_graph
 
+def Fig_degree_distribution_geometric(graph, constant, phi = None):
+    #Find the actual and expected degree frequencies
+    p_k = nx.degree_histogram(graph)
+    total = graph.number_of_nodes()
+    p_k = [i/total for i in p_k]
+    index = range(len(p_k))
+    expected = []
+    for x in index:
+        expected.append( dd_geometric(x, constant, phi) )
+
+    # Plot the degree frequencies
+
+    #Plotting degree frequencies in a log scale
+    histogram = plt.figure()
+    ax = histogram.add_subplot(1,1,1)
+    ax.set_yscale('log')
+    #ax.set_xscale('log')
+
+    #Can pick one of the options below to plot the actual frequencies
+    #plt.plot(p_k) #plots frequences as a line
+    plt.scatter(x = index, y = p_k) #plots as points
+    plt.plot(expected)
+
+    return histogram
+
+
 #defining the number of nodes in the network (n)
-#and the cutoff (cutoff) and exponent (theta)
-#in the powerlaw distribution used by Newman
-n = 1000000
+#and the relevant constants for each type of distribution
+n = 10000
 cutoff = 10
 theta = 1
 a = 0.5
@@ -111,53 +140,21 @@ while even == False:
         even = True
     
 #Now we have a degree sequence
-2
-#Makes the graph using the configuration model
+
+#Make the graph using the configuration model
 G = nx.configuration_model(degree_sequence)
 
-#Find the actual and expected degree frequencies
-p_k = nx.degree_histogram(G)
-p_k = [i/total for i in p_k]
-index = range(len(p_k))
-expected = []
-for x in index:
-    expected.append( dd_geometric(x,a) )
-
-#Plot the degree frequencies
-
-# #Plotting degree frequencies in a log scale
-# degree_histogram = plt.figure()
-# ax = degree_histogram.add_subplot(1,1,1)
-# ax.set_yscale('log')
-# ax.set_xscale('log')
-
-# #Can pick one of the options below to plot the actual frequencies
-# #plt.plot(p_k) #plots frequences as a line
-# plt.scatter(x = index, y = p_k) #plots as points
-# plt.plot(expected)
-
+# # Plot the degree distribution
+# degree_distribution = Fig_degree_distribution_geometric(G, a)
 # plt.show()
 
+# Plotting degree distributions for percolated graph
 # Percolating the graph
-occupation_probability = 0.5
+occupation_probability = 0.6
 P = Percolation(G,occupation_probability)
-# Finding degree frequencies of the percolated graph
-percolated_p_k = nx.degree_histogram(P)
-percolated_p_k = [i/P.number_of_nodes() for i in percolated_p_k] # make distribution
-percolated_index = range(len(percolated_p_k))
-percolated_expected = []
-for x in percolated_index:
-    percolated_expected.append( dd_geometric(x,a,occupation_probability) )
-#Plotting the percolated graph
-degree_histogram2 = plt.figure()
-ax = degree_histogram2.add_subplot(1,1,1)
-ax.set_yscale('log')
-#Can pick one of the options below to plot the actual frequencies
-#plt.plot(p_k) #plots frequences as a line
-plt.scatter(x = percolated_index, y = percolated_p_k) #plots as points
-plt.plot(percolated_expected)
-
+percolated_distribution = Fig_degree_distribution_geometric(P, a, occupation_probability)
 plt.show()
+
 
 # #Plotting the size of the Giant Component against occupation probability
 
@@ -170,7 +167,7 @@ plt.show()
 #     graph_data[0].append(occupation_probability)
 #     graph_data[1].append(GC.number_of_nodes())
 
-# plt.plot(graph_data[0], graph_data[1])
+# plt.plot(graph_data[0],graph_data[1])
 # plt.show()
 
 
