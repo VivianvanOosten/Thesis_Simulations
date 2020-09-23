@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import collections
 plt.style.use('seaborn')
 
 def dd_geometric(k, constant, phi = None):
@@ -16,7 +17,7 @@ def dd_geometric(k, constant, phi = None):
         probability = (1-constant) * constant**k 
         return probability
     else:
-        probability = (1-constant) * (constant * phi)**k * (1 + constant*(phi-1))**(-(k+1))
+        probability = (1-constant) * ((constant*phi)**k) * ((1 + constant*phi - constant)**(-k-1))
         return probability
 
 def networkx_powerlaw(n, a):
@@ -82,11 +83,12 @@ def number_generator_exponential(kappa):
             accept = True
     return k
 
-def Percolation(graph, phi):
+def Percolation_nodes(graph, phi):
     """
     Returns a percolated version of a graph.
     Takes as arguments the graph you want to percolate and the probability
     that a given node stays in the network.
+    --> this is NODE while my theory is EDGE
     """
     Percolated_graph = graph.copy(graph)
     for node in graph.nodes():
@@ -95,15 +97,38 @@ def Percolation(graph, phi):
             Percolated_graph.remove_node(node)
     return Percolated_graph
 
+def Percolation_edges(graph, phi):
+    """
+    Returns a percolated version of a graph.
+    Takes as arguments the graph you want to percolate and the probability
+    that a given node stays in the network.
+    --> this is NODE while my theory is EDGE
+    """
+    Percolated_graph = graph.copy(graph)
+    for u,v in graph.edges():
+        p = np.random.rand()
+        if p > phi:
+            Percolated_graph.remove_edge(u,v)
+    return Percolated_graph
+
 def Fig_degree_distribution_geometric(graph, constant, phi = None):
-    #Find the actual and expected degree frequencies
-    p_k = nx.degree_histogram(graph)
-    total = graph.number_of_nodes()
-    p_k = [i/total for i in p_k]
-    index = range(len(p_k))
+
+    degree_sequence = sorted([d for n, d in graph.degree()], reverse=True)  # degree sequence
+    # print "Degree sequence", degree_sequence
+    degreeCount = collections.Counter(degree_sequence)
+    deg, cnt = zip(*degreeCount.items())
+    total_nodes = sum(cnt)
+    cnt = [i/total_nodes for i in cnt]
+    if sum(cnt) != 1:
+        raise ValueError("Simulation incorrectly normalised")
+    print(deg)
+
     expected = []
-    for x in index:
+    for x in deg:
         expected.append( dd_geometric(x, constant, phi) )
+    total_expected = sum(expected)
+    # if total_expected != 1:
+    #     raise ValueError("Expectations incorrectly normalised, is now",total_expected)
 
     # Plot the degree frequencies
 
@@ -115,8 +140,9 @@ def Fig_degree_distribution_geometric(graph, constant, phi = None):
 
     #Can pick one of the options below to plot the actual frequencies
     #plt.plot(p_k) #plots frequences as a line
-    plt.scatter(x = index, y = p_k, label = "Simulation") #plots as points
-    plt.plot(expected, label = "Theory")
+    # plt.scatter(x = index, y = p_k, label = "Simulation") #plots as points
+    plt.plot(deg, expected, label = "Theory")
+    plt.plot(deg,cnt, label = "Simulation")
     plt.xlabel("Degree (k)")
     plt.ylabel("Degree probability ($p_k$)")
     plt.legend()
@@ -126,10 +152,10 @@ def Fig_degree_distribution_geometric(graph, constant, phi = None):
 
 #defining the number of nodes in the network (n)
 #and the relevant constants for each type of distribution
-n = 100000
+n = 10000
 cutoff = 10
 theta = 1
-a = 0.5
+a = 0.4
 
 # Generate n nodes in the a specific distribution
 # Throw away the sequence if the sum of degrees is odd & try again until even
@@ -138,7 +164,7 @@ even = False
 while even == False:
     for i in range(n):
         # Which distribution is used can be chosen below
-        degree_sequence.append(int(number_generator_geometric(a)))
+        degree_sequence.append(math.ceil(number_generator_geometric(a)))
     total = sum(degree_sequence)
     if (total % 2) == 0 :
         even = True
@@ -155,7 +181,7 @@ G = nx.configuration_model(degree_sequence)
 # Plotting degree distributions for percolated graph
 # Percolating the graph
 occupation_probability = 0.6
-P = Percolation(G,occupation_probability)
+P = Percolation_edges(G,occupation_probability)
 percolated_distribution = Fig_degree_distribution_geometric(P, a, occupation_probability)
 plt.show()
 
