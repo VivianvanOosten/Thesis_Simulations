@@ -5,6 +5,7 @@ import math
 import collections
 plt.style.use('seaborn')
 
+
 def dd_geometric(k, constant, phi = None):
     """
     Given a degree k, returns the probability that any random node has this degree
@@ -13,12 +14,22 @@ def dd_geometric(k, constant, phi = None):
     If phi is included as an argument, it uses the percolated degree distribution:
     p_k = (1-a) (a phi)^(1+a(phi-1))^(-(k+1)).
     """
-    if phi == None:
+    if phi is None:
         probability = (1-constant) * constant**k 
         return probability
     else:
         probability = (1-constant) * ((constant*phi)**k) * ((1 + constant*phi - constant)**(-k-1))
         return probability
+        
+
+def dd_Poisson(k, constant, phi = None):
+    if phi is None:
+        probability = math.e**(-constant) * constant**k / math.factorial(k)
+        return probability
+    else:
+        probability = math.e**(-constant*phi) * (constant*phi)**k / math.factorial(k)
+        return probability
+    
 
 def networkx_powerlaw(n, a):
     """
@@ -38,6 +49,7 @@ def networkx_powerlaw(n, a):
             even = True
     return degree_sequence
 
+
 def number_generator_powerlaw(cutoff, theta):
     """
     Uses the same algorithm Newman in his paper did (page 9) to return a 
@@ -54,6 +66,7 @@ def number_generator_powerlaw(cutoff, theta):
             accept = True
     return k
 
+
 def number_generator_geometric(constant):
     """
     Generates a k in the degree distribution: p_k = (1-a)a^k. 
@@ -65,6 +78,7 @@ def number_generator_geometric(constant):
     random = np.random.rand()
     k = math.log((1 - random) / (1 - constant), constant)
     return k
+
 
 def number_generator_exponential(kappa):
     """
@@ -83,6 +97,7 @@ def number_generator_exponential(kappa):
             accept = True
     return k
 
+
 def Percolation_nodes(graph, phi):
     """
     Returns a percolated version of a graph.
@@ -97,12 +112,12 @@ def Percolation_nodes(graph, phi):
             Percolated_graph.remove_node(node)
     return Percolated_graph
 
+
 def Percolation_edges(graph, phi):
     """
     Returns a percolated version of a graph.
     Takes as arguments the graph you want to percolate and the probability
     that a given node stays in the network.
-    --> this is NODE while my theory is EDGE
     """
     Percolated_graph = graph.copy(graph)
     for u,v in graph.edges():
@@ -111,24 +126,26 @@ def Percolation_edges(graph, phi):
             Percolated_graph.remove_edge(u,v)
     return Percolated_graph
 
+
 def Fig_degree_distribution_geometric(graph, constant, phi = None):
 
     degree_sequence = sorted([d for n, d in graph.degree()], reverse=True)  # degree sequence
-    # print "Degree sequence", degree_sequence
     degreeCount = collections.Counter(degree_sequence)
     deg, cnt = zip(*degreeCount.items())
     total_nodes = sum(cnt)
     cnt = [i/total_nodes for i in cnt]
-    if sum(cnt) != 1:
-        raise ValueError("Simulation incorrectly normalised")
-    print(deg)
-
+    norm = sum(cnt)
+    if norm != 1:
+        raise ValueError("Simulation incorrectly normalised, is now {}".format(norm))
+    
     expected = []
     for x in deg:
         expected.append( dd_geometric(x, constant, phi) )
     total_expected = sum(expected)
-    # if total_expected != 1:
-    #     raise ValueError("Expectations incorrectly normalised, is now",total_expected)
+    expected = [i/total_expected for i in expected]
+    norm = sum(expected)
+    if norm != 1:
+        raise ValueError("Theory incorrectly normalised, is now {}".format(norm))
 
     # Plot the degree frequencies
 
@@ -142,7 +159,7 @@ def Fig_degree_distribution_geometric(graph, constant, phi = None):
     #plt.plot(p_k) #plots frequences as a line
     # plt.scatter(x = index, y = p_k, label = "Simulation") #plots as points
     plt.plot(deg, expected, label = "Theory")
-    plt.plot(deg,cnt, label = "Simulation")
+    plt.plot(deg, cnt, label = "Simulation")
     plt.xlabel("Degree (k)")
     plt.ylabel("Degree probability ($p_k$)")
     plt.legend()
@@ -152,7 +169,7 @@ def Fig_degree_distribution_geometric(graph, constant, phi = None):
 
 #defining the number of nodes in the network (n)
 #and the relevant constants for each type of distribution
-n = 10000
+n = 100000
 cutoff = 10
 theta = 1
 a = 0.4
@@ -164,9 +181,9 @@ even = False
 while even == False:
     for i in range(n):
         # Which distribution is used can be chosen below
-        degree_sequence.append(math.ceil(number_generator_geometric(a)))
+        degree_sequence.append(round(number_generator_geometric(a)))
     total = sum(degree_sequence)
-    if (total % 2) == 0 :
+    if (total % 2) == 0:
         even = True
     
 #Now we have a degree sequence
