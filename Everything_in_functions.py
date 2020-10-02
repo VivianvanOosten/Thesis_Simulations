@@ -210,13 +210,37 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     ax.set_yscale('log') # to make the end-result a straight line
 
     #Plotting everything we need
-    plt.plot(deg, expected, label = "Theory")
+    plt.plot(deg, expected, label = "Theory", marker = '^', fill = None)
     plt.plot(deg, cnt, label = "Simulation")
     plt.xlabel("Degree (k)")
     plt.ylabel("Degree probability ($p_k$)")
     plt.legend()
 
     return histogram
+
+
+def critical_value(G, constants, distribution):
+    """
+    Calculates the critical value of phi.
+    For any known distribution we can easily calculate it,
+    using the analytical shortcuts.
+    For any unknown or previously uncalculated distribution,
+    we use the moments of the graph.
+    """
+
+    if distribution.lower() == "poisson":
+        return constants[0]
+    
+    if distribution.lower() == "geometric":
+        constant = constants[0]
+        return (1-constant) / (2*constant)
+
+    else:
+        degree_sequence = np.array([degree for node, degree in G.degree()])
+        degree_sequence_squared = np.array([degree**2 for degree in degree_sequence])
+        phi_c = 2 * np.mean(degree_sequence) / np.mean(degree_sequence_squared)
+        return phi_c
+
 
 
 #Setting values for all parameters
@@ -247,19 +271,9 @@ for occupation_probability in occupation_probabilities:
     GC = P.subgraph(GC)
     sizes.append(GC.number_of_nodes())
 
-# #Calculating the critical value according to this specific graph
-# degree_sequence = np.array([degree for node, degree in G.degree()])
-# degree_sequence_squared = np.array([degree**2 for degree in degree_sequence])
-# phi_c = 2 * np.mean(degree_sequence) / np.mean(degree_sequence_squared)
-
-# #Calculating the critical value using the degree distribution
-# #this one specifically for the geometric distribution
-# constant = a[0]
-# phi_c = 1 / ( (2 * constant * (1-constant))**2 / (1-constant)**3)
-# phi_c2 = (1-constant) / (2*constant)
-# plt.scatter(phi_c,0,marker='o')
-
-plt.plot(occupation_probabilities,sizes)
+plt.scatter(phi_c,0,marker='o', label = "Critical Value")
+plt.plot(occupation_probabilities, sizes, label = "Poisson distribution, with c = 5")
 plt.title("Size of Giant Component and Occupation Probability")
+plt.legend()
 plt.show()
 
