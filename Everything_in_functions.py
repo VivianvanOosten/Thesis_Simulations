@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import collections
+import mpmath
 plt.style.use('seaborn')
 
 # General to do's:
@@ -78,7 +79,7 @@ def number_generator(constants, distribution):
         raise ValueError("This is an unknown distribution. Please pick from: newmans powerlaw, geometric, exponential.")
 
 
-def degree_distribution(k, constant, distribution, phi = None):
+def degree_distribution(k, constants, distribution, phi = None):
     """
     For a given k, it returns the probability that any 
     random node has this degree according to a given distribution.
@@ -107,6 +108,7 @@ def degree_distribution(k, constant, distribution, phi = None):
     #To be done: add newman's powerlaw distribution here.
 
     if distribution.lower() == 'geometric':
+        constant = constants[0]
         if phi is None:
             probability = (1-constant) * constant**k 
         else:
@@ -114,6 +116,7 @@ def degree_distribution(k, constant, distribution, phi = None):
         return probability
     
     if distribution.lower() == 'exponential':
+        constant = constants[0]
         if phi is None:
             probability = (1 - math.e**(-1/constant)) * math.e**(-k/constant)
         else:
@@ -121,6 +124,7 @@ def degree_distribution(k, constant, distribution, phi = None):
         return probability
     
     if distribution.lower() == 'poisson':
+        constant = constants[0]
         if phi is None:
             probability = math.e**(-constant) * constant**k / math.factorial(k)
         else:
@@ -188,8 +192,8 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     degreeCount = collections.Counter(degree_sequence)
     deg, cnt = zip(*degreeCount.items())
     total_nodes = sum(cnt)
-    cnt = [i/total_nodes for i in cnt]
-    norm = sum(cnt)
+    fractions = [i/total_nodes for i in cnt]
+    norm = sum(fractions)
     if norm != 1:
         raise ValueError("Simulation incorrectly normalised, is now {}".format(norm))
     
@@ -199,6 +203,7 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     total_expected = sum(expected)
     expected = [i/total_expected for i in expected]
     norm = sum(expected)
+    print(norm)
     if norm != 1:
         raise ValueError("Theory incorrectly normalised, is now {}".format(norm))
 
@@ -210,11 +215,12 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     ax.set_yscale('log') # to make the end-result a straight line
 
     #Plotting everything we need
-    plt.plot(deg, expected, label = "Theory", marker = '^', fill = None)
-    plt.plot(deg, cnt, label = "Simulation")
+    plt.plot(deg, expected, label = "Theory")
+    plt.plot(deg, fractions, label = "Simulation")
     plt.xlabel("Degree (k)")
     plt.ylabel("Degree probability ($p_k$)")
     plt.legend()
+    plt.title("Degree Distribution for {} distribution".format(distribution))
 
     return histogram
 
@@ -229,7 +235,7 @@ def critical_value(G, constants, distribution):
     """
 
     if distribution.lower() == "poisson":
-        return constants[0]
+        return 1 / constants[0]
     
     if distribution.lower() == "geometric":
         constant = constants[0]
@@ -244,14 +250,15 @@ def critical_value(G, constants, distribution):
 
 
 #Setting values for all parameters
-n = 10000
-a = [5]
-degree_distribution_choice = 'poisson'
+n = 10**6
+a = [0.6]
+degree_distribution_choice = 'Poisson'
 
 # Creating an even degree sequence for 
 sequence = degree_sequence(a, n, degree_distribution_choice)
     
 G = nx.configuration_model(sequence)
+
 
 # #Plotting percolated degree distributions
 # occupation_probability = 0.6
@@ -259,21 +266,44 @@ G = nx.configuration_model(sequence)
 # percolated_distribution = Fig_degree_distribution(P, a, degree_distribution_choice, occupation_probability)
 # plt.show()
 
-
 #Plotting the size of the Giant Component against occupation probability
 
-occupation_probabilities = np.arange(0.05,1.05,0.05)
+# #To plot everything multiple times for different constants at some point --> what exactly tho?
+# possible_constants = [[0.2],[0.5],[0,8]]
+# markers = ['^', 'o', 's']
+
+# for a in possible_constants:
+    
+
 sizes = []
+phi_c = critical_value(G, a, degree_distribution_choice)
+#for a zoomed in graph
+#occupation_probabilities = np.arange(phi_c - 0.1, phi_c + 0.1,0.005)
+#for a full graph
+occupation_probabilities = np.arange(0, 1.05, 0.05)
 
 for occupation_probability in occupation_probabilities:
+    if occupation_probability <= phi_c:
+        sizes.append(0)
+        continue
     P = Percolation_edges(G,occupation_probability)
     GC = max(nx.connected_components(P), key=len)
     GC = P.subgraph(GC)
-    sizes.append(GC.number_of_nodes())
+    sizes.append(GC.number_of_nodes()/P.number_of_nodes())
+
 
 plt.scatter(phi_c,0,marker='o', label = "Critical Value")
-plt.plot(occupation_probabilities, sizes, label = "Poisson distribution, with c = 5")
+plt.plot(occupation_probabilities, sizes, label = "{} distribution, with a = {}".format(degree_distribution_choice, a[0]))
 plt.title("Size of Giant Component and Occupation Probability")
+
+#Plotting the tangent line for: 
+tangent_plot = np.arange(phi_c-0.05, 0.5, 0.05)
+#geometric
+#plt.plot(tangent_plot, tangent_plot*2 / (3*phi_c) - 2/3, label = "Tangent?")
+#poisson
+plt.plot(tangent_plot, tangent_plot - phi_c, label = "Tangent?")
 plt.legend()
+plt.xlabel("Occupation Probability ($\phi$)")
+plt.ylabel("Size of Giant Component (s)")
 plt.show()
 
