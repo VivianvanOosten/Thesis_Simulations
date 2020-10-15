@@ -215,8 +215,8 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     ax.set_yscale('log') # to make the end-result a straight line
 
     #Plotting everything we need
-    plt.plot(deg, expected, label = "Theory, a = {}".format(a[0]))
-    plt.plot(deg, fractions, label = "Simulation, a = {}".format(a[0]))
+    plt.plot(deg, expected, label = "Theory, c = {}".format(a[0]))
+    plt.plot(deg, fractions, label = "Simulation, c = {}".format(a[0]))
 
     return None
 
@@ -240,33 +240,27 @@ def critical_value(G, constants, distribution):
     else:
         degree_sequence = np.array([degree for node, degree in G.degree()])
         degree_sequence_squared = np.array([degree**2 for degree in degree_sequence])
-        phi_c = 2 * np.mean(degree_sequence) / np.mean(degree_sequence_squared)
+        phi_c = np.mean(degree_sequence) / (np.mean(degree_sequence_squared) - np.mean(degree_sequence))
         return phi_c
 
 
 def tangent_by_moments(G,phi):
-    degree_sequence = sorted([d for n, d in G.degree()], reverse=True)  # degree sequence
-    degreeCount = collections.Counter(degree_sequence)
-    deg, cnt = zip(*degreeCount.items())
-    total_nodes = G.number_of_nodes()
-    cnt = [i/total_nodes for i in cnt]
-    first_moment = 0
-    second_moment = 0
-    third_moment = 0
-    for i in range(len(deg)):
-        first_moment += deg[i] * cnt[i]
-        second_moment += deg[i]**2 * cnt[i]
-        third_moment += deg[i]**3 * cnt[i]
+    degree_sequence = np.array([degree for node, degree in G.degree()])  # degree sequence
+    degree_sequence_squared = np.array([degree**2 for degree in degree_sequence])
+    degree_sequence_cubed = np.array([degree**3 for degree in degree_sequence])
+    first_moment = np.mean(degree_sequence)
+    second_moment = np.mean(degree_sequence_squared)
+    third_moment = np.mean(degree_sequence_cubed)
     numerator = second_moment - first_moment
-    denominator = phi**2 * ( third_moment - (3*second_moment) + (2*first_moment))
+    denominator =  ( third_moment - (3*second_moment) + (2*first_moment)) * phi**2
     return numerator / denominator
 
 
 
 #Setting values for all parameters
 n = 10**5
-a = [0.5]
-degree_distribution_choice = 'Geometric'
+a = [5]
+degree_distribution_choice = 'Poisson'
 # constants_options = [[3],[5],[8]]
 
 # for a in constants_options:
@@ -274,20 +268,6 @@ degree_distribution_choice = 'Geometric'
 sequence = degree_sequence(a, n, degree_distribution_choice)
 
 G = nx.configuration_model(sequence)
-
-
-#     #Plotting percolated degree distributions
-#     occupation_probability = 0.6
-#     P = Percolation_edges(G,occupation_probability)
-#     Fig_degree_distribution(P, a, degree_distribution_choice, occupation_probability)
-
-#     #Plotting the size of the Giant Component against occupation probability   
-
-# plt.xlabel("Degree (k)")
-# plt.ylabel("Degree probability ($p_k$)")
-# plt.legend()
-# plt.title("Degree Distribution for {} distribution".format(degree_distribution_choice))   
-# plt.show()
 
 #Plotting the size and phi in one graph
 phi_c = critical_value(G, a, degree_distribution_choice)
