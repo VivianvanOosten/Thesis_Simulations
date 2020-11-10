@@ -11,8 +11,8 @@ import Everything_in_functions as fct
 
 #Setting values for all parameters
 n = 10**5
-a = [5]
-degree_distribution_choice = 'Poisson'
+a = [3]
+degree_distribution_choice = 'Exponential'
 # constants_options = [[3],[5],[8]]
 
 # for a in constants_options:

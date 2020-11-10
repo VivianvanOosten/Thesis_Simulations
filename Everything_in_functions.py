@@ -67,11 +67,11 @@ def number_generator(constants, distribution):
         accept = False
         while accept == False:
             random = np.random.rand()
-            k = -kappa * np.log(1-random)
+            k = kappa * np.log(1-random)
             random2 = np.random.rand()
             if random2 <= (1 - math.e**(-1/kappa)):
                 accept = True
-        return k
+        return math.ceil(k)
 
     #Poisson distribution is generated in one go using the numpy poisson generation 
 
@@ -96,7 +96,7 @@ def degree_distribution(k, constants, distribution, phi = None):
     p_k = (1-a) (a phi)^(1+a(phi-1))^(-(k+1)).
 
     Exponential:
-    The distribution is: p_k = (1 - e^(1-kappa) * e^(-k/kappa)).
+    The distribution is: p_k = (1 - e^(1/kappa) ) * e^(-k/kappa)).
     if phi is included as an argument, it uses the percolated degree distribution:
     p_k = ?????
 
@@ -164,7 +164,7 @@ def Percolation_nodes(graph, phi):
     Percolated_graph = graph.copy(graph)
     for node in graph.nodes():
         p = np.random.rand()
-        if p > phi:
+        if p >= phi:
             Percolated_graph.remove_node(node)
     return Percolated_graph
 
@@ -178,7 +178,7 @@ def Percolation_edges(graph, phi):
     Percolated_graph = graph.copy(graph)
     for u,v in graph.edges():
         p = np.random.rand()
-        if p > phi:
+        if p >= phi:
             Percolated_graph.remove_edge(u,v)
     return Percolated_graph
 
@@ -215,8 +215,8 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
     ax.set_yscale('log') # to make the end-result a straight line
 
     #Plotting everything we need
-    plt.plot(deg, expected, label = "Theory, c = {}".format(a[0]))
-    plt.plot(deg, fractions, label = "Simulation, c = {}".format(a[0]))
+    plt.plot(deg, expected, label = "Theory, c = {}".format(constants[0]))
+    plt.plot(deg, fractions, label = "Simulation, c = {}".format(constants[0]))
 
     return None
 
@@ -246,60 +246,21 @@ def critical_value(G, constants, distribution):
 
 def tangent_by_moments(G,phi):
     degree_sequence = np.array([degree for node, degree in G.degree()])  # degree sequence
-    degree_sequence_squared = np.array([degree**2 for degree in degree_sequence])
-    degree_sequence_cubed = np.array([degree**3 for degree in degree_sequence])
+    degree_sequence_squared = degree_sequence**2
+    degree_sequence_cubed = degree_sequence**3
     first_moment = np.mean(degree_sequence)
     second_moment = np.mean(degree_sequence_squared)
     third_moment = np.mean(degree_sequence_cubed)
     numerator = second_moment - first_moment
-    denominator =  ( third_moment - (3*second_moment) + (2*first_moment)) * phi**2
-    return numerator / denominator
+    denominator =  ( third_moment - (3*second_moment) + (2*first_moment)) * (first_moment**2)
+    return (numerator**3) / denominator
 
 
-
-#Setting values for all parameters
-n = 10**5
-a = [5]
-degree_distribution_choice = 'Poisson'
-# constants_options = [[3],[5],[8]]
-
-# for a in constants_options:
-# Creating an even degree sequence for 
-sequence = degree_sequence(a, n, degree_distribution_choice)
-
-G = nx.configuration_model(sequence)
-
-#Plotting the size and phi in one graph
-phi_c = critical_value(G, a, degree_distribution_choice)
-#for a zoomed in graph
-#occupation_probabilities = np.arange(phi_c - 0.1, phi_c + 0.1,0.005)
-#for a full graph
-sizes = []
-occupation_probabilities = np.arange(0, 1.05, 0.05)
-
-for occupation_probability in occupation_probabilities:
-    if occupation_probability <= phi_c:
-        sizes.append(0)
-        continue
-    P = Percolation_edges(G,occupation_probability)
-    GC = max(nx.connected_components(P), key=len)
-    GC = P.subgraph(GC)
-    sizes.append(GC.number_of_nodes()/P.number_of_nodes())
-
-plt.plot(occupation_probabilities, sizes, label = "{} distribution, with c = {}".format(degree_distribution_choice, a[0]))
-plt.scatter(phi_c,0,marker='o', label = "Critical Value")
+def tangent_poisson(constants,phic):
+    constant = constants[0]
+    return constant / (constant**2 * phic**2)
 
 
-plt.title("Size of Giant Component and Occupation Probability")
-
-#Plotting the tangent line for: 
-tangent_plot = np.arange(phi_c-0.05, phi_c+0.2, 0.05)
-tangent = tangent_by_moments(G, phi_c)
-
-plt.plot(tangent_plot, (tangent_plot * tangent) - (phi_c * tangent), label = "Tangent")
-
-plt.legend()
-plt.xlabel("Occupation Probability ($\phi$)")
-plt.ylabel("Size of Giant Component (s)")
-plt.show()
-
+def tangent_geometric(constants,phic):
+    constant = constants[0]
+    return 4/(3*phic)
