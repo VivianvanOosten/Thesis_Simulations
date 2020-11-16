@@ -18,6 +18,8 @@ def number_generator(constants, distribution):
     - Exponential
     - Poisson
 
+    Note that the Poisson distribution is generated using the Numpy function for it.
+
     Newmans Powerlaw:
     Uses the same algorithm Newman in his paper did (page 9) to return a 
     random number of the powerlaw distribution with a cutoff and an 
@@ -28,7 +30,7 @@ def number_generator(constants, distribution):
     Generates a k in the degree distribution: p_k = (1-a)a^k. 
     Found on Newman book page 580.
     The method for generating this number was taken 
-    from the Newman article, page 9. 
+    from the Newman article, page 9 and adapted for this distribution.
     Takes as argument the constant a. 
 
     Exponential:
@@ -55,10 +57,15 @@ def number_generator(constants, distribution):
     elif distribution.lower() == "geometric":
         if len(constants) != 1:
             raise ValueError("A Geometric distribution needs 1 constant: a.")
-        random = np.random.rand()
         a = constants[0]
-        k = math.log((1 - random) / (1 - a), a)
-        return k
+        accept = False
+        while accept == False:
+            random = np.random.rand()
+            k = math.log((1 - random), a)
+            random2 = np.random.rand()
+            if random2 <= (1-a):
+                accept = True
+        return math.floor(k)
 
     elif distribution.lower() == "exponential":
         if len(constants) != 1:
@@ -67,11 +74,11 @@ def number_generator(constants, distribution):
         accept = False
         while accept == False:
             random = np.random.rand()
-            k = kappa * np.log(1-random)
+            k = -kappa * np.log(1-random)
             random2 = np.random.rand()
             if random2 <= (1 - math.e**(-1/kappa)):
                 accept = True
-        return math.ceil(k)
+        return math.floor(k)
 
     #Poisson distribution is generated in one go using the numpy poisson generation 
 
@@ -112,7 +119,7 @@ def degree_distribution(k, constants, distribution, phi = None):
         if phi is None:
             probability = (1-constant) * constant**k 
         else:
-            probability = (1-constant) * ((constant*phi)**k) * ((1 + constant*phi - constant)**(-k-1))
+            probability = (1-constant) * ((constant*phi)**k) / ((1 + constant*phi - constant)**(k+1))
         return probability
     
     if distribution.lower() == 'exponential':
@@ -120,7 +127,7 @@ def degree_distribution(k, constants, distribution, phi = None):
         if phi is None:
             probability = (1 - math.e**(-1/constant)) * math.e**(-k/constant)
         else:
-            probability = None #Add whatever the phi degree distribution is for exponential functions 
+            probability = (1 - math.e**(-1/constant)) * math.e**(-k/constant) * phi**k / ( 1 + (phi-1)*math.e**(-1/constant))**(k+1)
         return probability
     
     if distribution.lower() == 'poisson':
@@ -252,8 +259,8 @@ def tangent_by_moments(G,phi):
     second_moment = np.mean(degree_sequence_squared)
     third_moment = np.mean(degree_sequence_cubed)
     numerator = second_moment - first_moment
-    denominator =  ( third_moment - (3*second_moment) + (2*first_moment)) * (first_moment**2)
-    return (numerator**3) / denominator
+    denominator =  third_moment - (3*second_moment) + (2*first_moment) 
+    return 2 * numerator**2 / denominator
 
 
 def tangent_poisson(constants,phic):
