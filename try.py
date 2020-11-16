@@ -1,14 +1,13 @@
 import numpy as np
 import math
+import networkx as nx
 
-mini = float('inf')
-maxi = float('-inf')
 
-for kappa in np.arange(1,100,0.5):
-    chance = (1-math.e**(-1/kappa))
-    if mini > chance:
-        mini = chance
-    if maxi < chance:
-        maxi = chance
+u = 0.1
+for i in range(100000):
+    u1 = u
+    u = 0.4**2 / (1 - 0.6*u1)**2
 
-print(mini,maxi)
+g0 = (0.4) / (1 - 0.6*u)
+
+print(1 - g0)
