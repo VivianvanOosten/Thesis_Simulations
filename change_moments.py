@@ -10,8 +10,11 @@ plt.style.use('seaborn')
 
 import Everything_in_functions as fct 
 
+#imperfect - I need to add a way to include probabilities per degree & use those
+
+
 def moments(graph):
-    degree_sequence = np.array([degree for node, degree in G.degree()])  # degree sequence
+    degree_sequence = np.array([degree for node, degree in graph.degree()])  # degree sequence
     degree_sequence_squared = degree_sequence**2
     degree_sequence_cubed = degree_sequence**3
     first_moment = np.mean(degree_sequence)
@@ -33,41 +36,50 @@ sequence = fct.degree_sequence(a, n, degree_distribution_choice)
 G = nx.configuration_model(sequence)
 original = G.copy()
 
-edges_to_add = 0
+#Creates the degree sequence including node labels
 degree_sequence = []
-diff_degrees = []
 for node, degree in G.degree():
-    if degree not in diff_degrees:
-        diff_degrees.append(degree)
-    degree_sequence.append([node, degree])
-    if degree > 4:
-        for edge in original.edges():
-            if node in edge:
-                edges_to_add += 1
-                G.remove_edges_from([edge])
+    degree_sequence.append([node,degree])
+degree_sequence = pd.DataFrame(degree_sequence, columns = ['Node', 'Degree'])
 
-diff_degrees.sort()
-degree_df = pd.DataFrame(degree_sequence, columns = ["Node", "Degree"])
-degree_df = degree_df.sort_values(by = "Degree", ascending = True)
-while edges_to_add != 0:
-    for degree in diff_degrees:
-        nodes_with_degree = list(degree_df[degree_df["Degree"]==degree]['Node'])
-        while len(nodes_with_degree) >= 2:
-            node1 = random.choice(nodes_with_degree)
-            nodes_with_degree.remove(node1)
-            node2 = random.choice(nodes_with_degree)
-            nodes_with_degree.remove(node2)
-            G.add_edge(node1,node2)
-            edges_to_add -= 1
+#Remove all nodes with degree higher than 4
+higher_than_four = degree_sequence[degree_sequence['Degree']>4]
+nodes_removed = sum(higher_than_four['Degree'])
+degree_sequence = degree_sequence.append(higher_than_four)
+degree_sequence = degree_sequence.drop_duplicates(subset ='Node',keep=False)
 
+#Create new graph with removed nodes
+New = original.subgraph(list(degree_sequence['Node']))
 
-moments(original)
-moments(G)
+origmo = np.array(moments(original))
+newmo = moments(New)
 
-    
-#imperfect - I need to add a way to include probabilities per degree & use those
+# edges_to_add = 0
+# degree_sequence = []
+# diff_degrees = []
+# for node, degree in G.degree():
+#     if degree not in diff_degrees:
+#         diff_degrees.append(degree)
+#     degree_sequence.append([node, degree])
+#     if degree > 4:
+#         for edge in original.edges():
+#             if node in edge:
+#                 edges_to_add += 1
+#                 G.remove_edges_from([edge])
 
-#phi_c = fct.critical_value(G, a, degree_distribution_choice)
+# diff_degrees.sort()
+# degree_df = pd.DataFrame(degree_sequence, columns = ["Node", "Degree"])
+# degree_df = degree_df.sort_values(by = "Degree", ascending = True)
+# while edges_to_add != 0:
+#     for degree in diff_degrees:
+#         nodes_with_degree = list(degree_df[degree_df["Degree"]==degree]['Node'])
+#         while len(nodes_with_degree) >= 2:
+#             node1 = random.choice(nodes_with_degree)
+#             nodes_with_degree.remove(node1)
+#             node2 = random.choice(nodes_with_degree)
+#             nodes_with_degree.remove(node2)
+#             G.add_edge(node1,node2)
+#             edges_to_add -= 1
 
 
 
