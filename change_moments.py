@@ -25,6 +25,17 @@ def moments(graph):
 
     return first_moment, second_moment, third_moment
 
+def moments_from_sequence(sequence):
+    degree_sequence_squared = sequence**2
+    degree_sequence_cubed = sequence**3
+    first_moment = np.mean(sequence)
+    second_moment = np.mean(degree_sequence_squared)
+    third_moment = np.mean(degree_sequence_cubed)
+
+    print(first_moment, second_moment, third_moment)
+
+    return [first_moment, second_moment, third_moment]
+
 #Setting values for all parameters
 n = 1000
 a = [3]
@@ -44,15 +55,19 @@ degree_sequence = pd.DataFrame(degree_sequence, columns = ['Node', 'Degree'])
 
 #Remove all nodes with degree higher than 4
 higher_than_four = degree_sequence[degree_sequence['Degree']>4]
-nodes_removed = sum(higher_than_four['Degree'])
+nodes_removed = round(sum(higher_than_four['Degree'])/2)
 degree_sequence = degree_sequence.append(higher_than_four)
 degree_sequence = degree_sequence.drop_duplicates(subset ='Node',keep=False)
+
+#Add edges to nodes with small degree.
+degree_sequence = degree_sequence.sort_values(by = "Degree")
+degree_sequence[:nodes_removed] = degree_sequence[:nodes_removed]+1
 
 #Create new graph with removed nodes
 New = original.subgraph(list(degree_sequence['Node']))
 
-origmo = np.array(moments(original))
-newmo = moments(New)
+origmo = moments(original)
+newmo = moments_from_sequence(degree_sequence['Degree'])
 
 # edges_to_add = 0
 # degree_sequence = []
