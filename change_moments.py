@@ -21,9 +21,7 @@ def moments(graph):
     second_moment = np.mean(degree_sequence_squared)
     third_moment = np.mean(degree_sequence_cubed)
 
-    print(first_moment, second_moment, third_moment)
-
-    return first_moment, second_moment, third_moment
+    return [first_moment, second_moment, third_moment]
 
 def moments_from_sequence(sequence):
     degree_sequence_squared = sequence**2
@@ -32,74 +30,94 @@ def moments_from_sequence(sequence):
     second_moment = np.mean(degree_sequence_squared)
     third_moment = np.mean(degree_sequence_cubed)
 
-    print(first_moment, second_moment, third_moment)
-
     return [first_moment, second_moment, third_moment]
 
+def change_degrees(deg, const, distribution, mean):
+    if distribution.lower() == "geometric":
+        prob = (1-const)*const**deg
+    if distribution.lower() == "poisson":
+        prob = const**deg
+    if distribution.lower() == "exponential":
+        prob = (1 - math.e**(1/const)) * math.e**(deg/const)
+    random = np.random.rand()
+    if random < prob:
+        return mean*2
+    else:
+        return deg
+
+
 #Setting values for all parameters
-n = 1000
-a = [3]
+n = 1000000
+a = [5]
 degree_distribution_choice = 'Poisson'
+change_distribution = "geometric"
 
-# Creating an even degree sequence for 
-sequence = fct.degree_sequence(a, n, degree_distribution_choice)
+differences = np.zeros((10,3,3))
+i = 0
+for change_constant in np.arange(0,1,0.1):
+    # Creating an even degree sequence for 
+    sequence = fct.degree_sequence(a, n, degree_distribution_choice)
+    mean = np.mean(np.array(sequence))
 
-G = nx.configuration_model(sequence)
-original = G.copy()
+    #Creates series of degree sequence
+    degree_sequence = pd.Series(sequence, name = "Degree")
+    degree_sequence = degree_sequence.apply(lambda x: change_degrees(x, change_constant, change_distribution,mean))
 
-#Creates the degree sequence including node labels
-degree_sequence = []
-for node, degree in G.degree():
-    degree_sequence.append([node,degree])
-degree_sequence = pd.DataFrame(degree_sequence, columns = ['Node', 'Degree'])
+    #Calculate the moments
+    origmo = np.array(moments_from_sequence(sequence))
+    newmo = np.array(moments_from_sequence(degree_sequence))
+    multiple = newmo/origmo
+    differences[i][0] = origmo
+    differences[i][1] = newmo
+    differences[i][2] = multiple
 
-#Remove all nodes with degree higher than 4
-higher_than_four = degree_sequence[degree_sequence['Degree']>4]
-nodes_removed = round(sum(higher_than_four['Degree'])/2)
-degree_sequence = degree_sequence.append(higher_than_four)
-degree_sequence = degree_sequence.drop_duplicates(subset ='Node',keep=False)
+    # diff = []
+    # for i in range(2):
+    #     diff.append(multiple[i] - multiple[i+1])
+    # differences.append([diff,multiple[0]])
+    # df = pd.DataFrame([origmo, newmo, multiple, diff], 
+    #                 columns = ["First",'Second', 'Third'], 
+    #                 index = ["Original",'New','Factor',"Differences"])
 
-#Add edges to nodes with small degree.
-degree_sequence = degree_sequence.sort_values(by = "Degree")
-degree_sequence[:nodes_removed] = degree_sequence[:nodes_removed]+1
+    # print(df.to_latex())
 
-#Create new graph with removed nodes
-New = original.subgraph(list(degree_sequence['Node']))
+    i += 1
 
-origmo = moments(original)
-newmo = moments_from_sequence(degree_sequence['Degree'])
+print(differences)
 
-# edges_to_add = 0
-# degree_sequence = []
-# diff_degrees = []
-# for node, degree in G.degree():
-#     if degree not in diff_degrees:
-#         diff_degrees.append(degree)
-#     degree_sequence.append([node, degree])
-#     if degree > 4:
-#         for edge in original.edges():
-#             if node in edge:
-#                 edges_to_add += 1
-#                 G.remove_edges_from([edge])
+df = pd.DataFrame(differences[-1], 
+                    columns = ["First",'Second', 'Third'], 
+                    index = ["Original",'New','Factor'])
 
-# diff_degrees.sort()
-# degree_df = pd.DataFrame(degree_sequence, columns = ["Node", "Degree"])
-# degree_df = degree_df.sort_values(by = "Degree", ascending = True)
-# while edges_to_add != 0:
-#     for degree in diff_degrees:
-#         nodes_with_degree = list(degree_df[degree_df["Degree"]==degree]['Node'])
-#         while len(nodes_with_degree) >= 2:
-#             node1 = random.choice(nodes_with_degree)
-#             nodes_with_degree.remove(node1)
-#             node2 = random.choice(nodes_with_degree)
-#             nodes_with_degree.remove(node2)
-#             G.add_edge(node1,node2)
-#             edges_to_add -= 1
+print(df.to_latex())
+
+#Stuff
+# number_degrees = degree_sequence.value_counts(normalize = True)
+# number_degrees = number_degrees*multiply
+# new_total = sum(number_degrees)
+# zeroes = 1 - new_total
+# number_degrees[0] = zeroes
+# print(number_degrees)
+
+# # Remove edges from nodes with a certain probability
+# new_sequence = degree_sequence.apply(lambda x: change_degrees(x, multiply))
 
 
+# # Remove all edges from nodes with degree higher than 4
+# new_sequence = pd.Series(0 if deg > 4 else deg for deg in sequence)
 
+# #Remove all nodes with degree higher than 4
+# higher_than_four = degree_sequence[degree_sequence>4]
+# new_sequence = degree_sequence[degree_sequence<=4]
+# edges_removed = round(sum(higher_than_four)/2)
+
+# # Add edges to nodes with small degree.
+# new_sequence = new_sequence.sort_values()
+# new_sequence[:nodes_removed] = new_sequence[:edges_removed]+1
 
 
 # fig = plt.figure()
 # ax = fig.add_subplot(111, projection='3d')
 # https://matplotlib.org/mpl_toolkits/mplot3d/tutorial.html
+
+
