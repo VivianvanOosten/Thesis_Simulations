@@ -32,6 +32,18 @@ def moments_from_sequence(sequence):
 
     return [first_moment, second_moment, third_moment]
 
+def moments_from_frequencies(freq):
+    total = sum(freq)
+    freq = freq.reset_index()
+    print(freq)
+    freq['Total deg'] = freq.apply(lambda x: x['index']*x['Count']/(total), axis = 1)
+    freq['Total deg^2'] = freq.apply(lambda x: x['index']**2*x['Count']/(total), axis = 1)
+    freq['Total deg^3'] = freq.apply(lambda x: x['index']**3*x['Count']/(total), axis = 1)
+    first_moment = sum(freq['Total deg'])
+    second_moment = sum(freq['Total deg^2'])
+    third_moment = sum(freq['Total deg^3'])
+    return [first_moment, second_moment, third_moment]
+
 def change_degrees(deg, const, distribution, mean):
     if distribution.lower() == "geometric":
         prob = (1-const)*const**deg
@@ -51,45 +63,36 @@ n = 1000000
 a = [5]
 degree_distribution_choice = 'Poisson'
 change_distribution = "geometric"
+multiplication_factor = 3
 
-differences = np.zeros((10,3,3))
-i = 0
-for change_constant in np.arange(0,1,0.1):
-    # Creating an even degree sequence for 
-    sequence = fct.degree_sequence(a, n, degree_distribution_choice)
-    mean = np.mean(np.array(sequence))
+# Creating an even degree sequence for 
+sequence = fct.degree_sequence(a, n, degree_distribution_choice)
+mean = np.mean(np.array(sequence))
 
-    #Creates series of degree sequence
-    degree_sequence = pd.Series(sequence, name = "Degree")
-    degree_sequence = degree_sequence.apply(lambda x: change_degrees(x, change_constant, change_distribution,mean))
+#Creates series of degree sequence
+degree_sequence = pd.Series(sequence, name = "Degree")
+degree_frequencies = degree_sequence.value_counts()
+degree_frequencies.name = 'Count'
 
-    #Calculate the moments
-    origmo = np.array(moments_from_sequence(sequence))
-    newmo = np.array(moments_from_sequence(degree_sequence))
-    multiple = newmo/origmo
-    differences[i][0] = origmo
-    differences[i][1] = newmo
-    differences[i][2] = multiple
+#Multiplying the value counts by a
+degree_frequencies = degree_frequencies*multiplication_factor
 
-    # diff = []
-    # for i in range(2):
-    #     diff.append(multiple[i] - multiple[i+1])
-    # differences.append([diff,multiple[0]])
-    # df = pd.DataFrame([origmo, newmo, multiple, diff], 
-    #                 columns = ["First",'Second', 'Third'], 
-    #                 index = ["Original",'New','Factor',"Differences"])
+#Calculate the moments
+origmo = np.array(moments_from_sequence(sequence))
+newmo = np.array(moments_from_frequencies(degree_frequencies))
+multiplied = newmo/origmo
 
-    # print(df.to_latex())
+print(origmo)
+print(newmo)
+print(multiplied)
 
-    i += 1
 
-print(differences)
 
-df = pd.DataFrame(differences[-1], 
-                    columns = ["First",'Second', 'Third'], 
-                    index = ["Original",'New','Factor'])
+# df = pd.DataFrame(differences[-1], 
+#                     columns = ["First",'Second', 'Third'], 
+#                     index = ["Original",'New','Factor'])
 
-print(df.to_latex())
+# print(df.to_latex())
 
 #Stuff
 # number_degrees = degree_sequence.value_counts(normalize = True)
