@@ -64,24 +64,27 @@ phi_c = fct.critical_value(G, a, degree_distribution_choice)
 
 sizes = []
 theory_u = []
-occupation_probabilities = np.arange(0, 1.05, 0.05)
+occupation_probabilities = np.arange(0, 1.05, 0.0025)
 
 for occupation_probability in occupation_probabilities:
     if occupation_probability <= phi_c:
         sizes.append(0)
         theory_u.append(0)
         continue
-    P = fct.Percolation_nodes(G,occupation_probability)
-    GC = max(nx.connected_components(P), key=len)
-    GC = G.subgraph(GC)
-    sizes.append( (nx.number_of_nodes(GC)/nx.number_of_nodes(G)) )
+    iterative_size = []
+    for i in range(1000):
+        P = fct.Percolation_nodes(G,occupation_probability)
+        GC = max(nx.connected_components(P), key=len)
+        GC = P.subgraph(GC)
+        iterative_size.append(GC.number_of_nodes()/P.number_of_nodes())
+    sizes.append(mean(iterative_size))
 
 
     # ADD THEORETICAL S HERE
 
     u = u_finder(degree_distribution_choice, a, occupation_probability)
     if degree_distribution_choice.lower() == "geometric":
-        s = occupation_probability *( 1 - ( (1 - a[0]) / ( 1 - a[0]*(u*occupation_probability-occupation_probability+1) ) ))
+        s = occupation_probability * ( 1 - ( (1 - a[0]) / ( 1 - a[0]*(u*occupation_probability - occupation_probability + 1) ) ))
     if degree_distribution_choice.lower() == "poisson":
         s = occupation_probability * ( 1 - math.e**(a[0]*(u*occupation_probability - occupation_probability) ) )
     #s = s_finder(degree_distribution_choice, a, occupation_probability)
@@ -92,13 +95,13 @@ for occupation_probability in occupation_probabilities:
 
 theorized_u = plt.figure()
 
-plt.plot(occupation_probabilities, sizes, label = "{} distribution, with c = {}".format(degree_distribution_choice, a[0]))
+plt.scatter(occupation_probabilities, sizes, facecolors = 'none', label = "{} distribution, with c = {}".format(degree_distribution_choice, a[0]))
 plt.scatter(phi_c,0,marker='o', label = "Critical Value")
 
 plt.plot(occupation_probabilities, theory_u, label = "Theorized size")
 
 tangent_plot = np.arange(phi_c-0.05, phi_c+0.2, 0.05)
-tangent = phi_c * fct.tangent_by_moments(G, phi_c) - 1 
+tangent = fct.tangent_by_moments(G, phi_c)
 
 plt.plot(tangent_plot, ((tangent_plot * tangent) - (phi_c * tangent)), label = "Tangent")
 

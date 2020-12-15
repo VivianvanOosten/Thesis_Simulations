@@ -4,6 +4,7 @@ import numpy as np
 import math
 import collections
 import mpmath
+from statistics import mean
 plt.style.use('seaborn')
 
 import Everything_in_functions as fct 
@@ -33,14 +34,17 @@ for occupation_probability in occupation_probabilities:
     if occupation_probability <= phi_c:
         sizes.append(0)
         continue
-    P = fct.Percolation_nodes(G,occupation_probability)
-    GC = max(nx.connected_components(P), key=len)
-    GC = P.subgraph(GC)
-    sizes.append(GC.number_of_nodes()/P.number_of_nodes())
 
-plt.plot(occupation_probabilities, sizes, label = "{} distribution, with c = {}".format(degree_distribution_choice, a[0]))
+    iterative_size = []
+    for i in range(1000):
+        P = fct.Percolation_nodes(G,occupation_probability)
+        GC = max(nx.connected_components(P), key=len)
+        GC = P.subgraph(GC)
+        iterative_size.append(GC.number_of_nodes()/P.number_of_nodes())
+    sizes.append(mean(iterative_size))
+
+plt.scatter(occupation_probabilities, sizes, label = "{} distribution, with c = {}".format(degree_distribution_choice, a[0]))
 plt.scatter(phi_c,0,marker='o', label = "Critical Value")
-
 
 plt.title("Size of Giant Component and Occupation Probability")
 
