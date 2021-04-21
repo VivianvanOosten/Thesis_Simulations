@@ -40,18 +40,24 @@ def number_generator(constants, distribution):
     Takes as argument the constant kappa 
     (which can take any value, big or small).
     """
-    if distribution.lower() == "newman powerlaw":
+    if distribution.lower() == "scale free":
         if len(constants) != 2:
-            raise ValueError("A Newman Powerlaw distribution needs 2 constants: a cutoff and theta.")
+            raise ValueError("A scale free distribution needs 2 constants: a cutoff and tau.")
         cutoff = constants[0]
-        theta = constants[1]
+        tau = constants[1]
         accept = False
         while accept == False:
             random = np.random.rand()
-            k = -cutoff * np.log(1-random)
+            k = math.ceil(-cutoff * np.log(1-random))
+            if round(k) == 0:
+                continue
             acceptance = np.random.rand()
-            if acceptance < k**(-theta): #removed k>=1
+            if acceptance <= k**(-tau): #removed k>=1
                 accept = True
+        # while accept == True:
+        #     random2 = np.random.rand()
+        #     if random2 <= mpmath.polylog(tau, math.e**(-1/cutoff)):
+        #         accept = False
         return k
     
     elif distribution.lower() == "geometric":
@@ -75,15 +81,27 @@ def number_generator(constants, distribution):
         while accept == False:
             random = np.random.rand()
             k = -kappa * np.log(1-random)
+            if k == 0:
+                continue
             random2 = np.random.rand()
             if random2 <= (1 - math.e**(-1/kappa)):
                 accept = True
         return math.floor(k)
 
+    # Early version of the scale free variant
+    # elif distribution.lower() == "scale free":
+    #     if len(constants) != 1:
+    #         raise ValueError("A scale-free distribution needs 1 constant: gamma.")
+    #     gamma = constants[0]
+    #     random = np.random.rand()
+    #     k = random**(-1/gamma)
+    #     return math.floor(k)
+
+
     #Poisson distribution is generated in one go using the numpy poisson generation 
 
     else:
-        raise ValueError("This is an unknown distribution. Please pick from: newmans powerlaw, geometric, exponential.")
+        raise ValueError("This is an unknown distribution. Please pick from: newmans powerlaw, geometric, exponential, scale-free.")
 
 
 def degree_distribution(k, constants, distribution, phi = None):
@@ -138,6 +156,18 @@ def degree_distribution(k, constants, distribution, phi = None):
             probability = math.e**(-constant*phi) * (constant*phi)**k / math.factorial(k)
         return probability
 
+    if distribution.lower() == 'scale free':
+        cutoff = constants[0]
+        tau = constants[1]
+        if k == 0:
+            probability == 0
+        elif phi is None:
+            probability = k**(-tau) * math.e**(-k/cutoff) / mpmath.polylog(tau,math.e**(-1/cutoff))
+        else:
+            probability = 0
+        return float(probability)
+
+
 
 def degree_sequence(constants, number_of_nodes, distribution):
     """
@@ -146,9 +176,9 @@ def degree_sequence(constants, number_of_nodes, distribution):
     For Poisson it generataes the sequence directly. 
     All other distributions are generated using the 'number_generator' fct.
     """
-    sequence = []
     even = False
     while even == False:
+        sequence = []
         if distribution.lower() == 'poisson':
             rng = np.random.default_rng()
             sequence = rng.poisson(constants[0],number_of_nodes)
@@ -223,7 +253,7 @@ def Fig_degree_distribution(graph, constants, distribution, phi = None):
 
     #Plotting everything we need
     plt.plot(deg, expected, label = "Theory, c = {}".format(constants[0]))
-    plt.plot(deg, fractions, label = "Simulation, c = {}".format(constants[0]))
+    plt.scatter(deg, fractions, facecolor = 'none', edgecolors = 'black', label = "Simulation, c = {}".format(constants[0]))
 
     return None
 
@@ -271,3 +301,7 @@ def tangent_poisson(constants,phic):
 def tangent_geometric(constants,phic):
     constant = constants[0]
     return 4/(3*phic)
+
+
+
+
